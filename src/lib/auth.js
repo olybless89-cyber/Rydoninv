@@ -73,7 +73,10 @@ export function csrfToken(c) {
 }
 
 export const csrfGuard = async (c, next) => {
-  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(c.req.method)) {
+  // Infra/bootstrap routes bypass CSRF: they have no session and are
+  // either read-only (healthchecks) or gated by their own token (/setup).
+  const infra = c.req.path === '/healthz' || c.req.path === '/readyz' || c.req.path === '/setup';
+  if (!infra && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(c.req.method)) {
     const body = await c.req.parseBody();
     c.set('body', body);
     const sent = body._csrf;
