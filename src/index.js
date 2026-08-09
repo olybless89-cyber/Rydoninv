@@ -50,6 +50,23 @@ app.get('/readyz', async (c) => {
   catch (e) { return c.json({ ok: false, db: false, error: e.message }, 503); }
 });
 
+// One-time setup: seeds plans, traders, bots, admin + demo users, and
+// market prices. Gated by SETUP_TOKEN so it can't be triggered by
+// anonymous visitors. Use it once after first deploy, then leave it.
+app.post('/setup', async (c) => {
+  const token = process.env.SETUP_TOKEN;
+  if (!token) return c.json({ ok: false, error: 'SETUP_TOKEN env var is not configured' }, 503);
+  const sent = c.req.header('x-setup-token') || c.req.query('token');
+  if (sent !== token) return c.json({ ok: false, error: 'invalid setup token' }, 403);
+  try {
+    const { seed } = await import('./db/seed.js');
+    await seed();
+    return c.json({ ok: true, message: 'seed complete — admin and demo users, plans, traders created' });
+  } catch (e) {
+    return c.json({ ok: false, error: e.message, stack: e.stack?.split('\n').slice(0, 5) }, 500);
+  }
+});
+
 // Order matters: public routes (auth + pub) must be mounted before the
 // auth-protected routers, otherwise their `*` guard middleware would
 // shadow public pages like /, /markets, /plans and force a login redirect.

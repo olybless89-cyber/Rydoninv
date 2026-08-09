@@ -150,7 +150,11 @@ async function main() {
   console.log(`[seed] ${count} closed trades on record`);
 
   console.log('[seed] done');
-  await sql.end();
 }
 
-main().catch((e) => { console.error('[seed] failed:', e); process.exit(1); });
+// Auto-run only when invoked as a script (npm run seed), not when imported.
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().then(() => sql.end()).catch((e) => { console.error('[seed] failed:', e); process.exit(1); });
+}
+
+export { main as seed };
