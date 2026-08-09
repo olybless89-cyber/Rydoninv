@@ -35,7 +35,11 @@ const connUrl = url || 'postgresql://unset:unset@127.0.0.1:5432/unset';
 export const sql = postgres(connUrl, {
   max: Number(process.env.DB_POOL_MAX || 8),
   idle_timeout: 20,
-  connect_timeout: 15,
+  connect_timeout: Number(process.env.DB_CONNECT_TIMEOUT || 10),
+  // Fail fast instead of hanging forever when the DB is unreachable or
+  // the SSL/handshake stalls — otherwise every DB-backed request hangs
+  // until the HTTP timeout, which looks like "the site is broken".
+  query_timeout: Number(process.env.DB_QUERY_TIMEOUT || 10000),
   prepare: false,          // required for pgbouncer transaction pooling
   ssl: sslOpt,
 });
