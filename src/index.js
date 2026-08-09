@@ -37,14 +37,11 @@ app.use('/css/*', serveStatic({ root: './public' }));
 app.use('/js/*',  serveStatic({ root: './public' }));
 app.use('/img/*', serveStatic({ root: './public' }));
 
-app.use('*', loadUser);
-app.use('*', csrfGuard);
-app.use('*', async (c, next) => { c.set('csrf', csrfToken(c)); await next(); });
-
+// Infra routes mounted before the global auth/CSRF middleware so they
+// work without a session: healthcheck (liveness), DB readiness, and the
+// one-time token-gated seed endpoint.
 app.get('/healthz', (c) => c.json({ ok: true, ts: Date.now() }));
 
-// DB readiness probe — separate from liveness so a DB outage doesn't
-// put Railway into a restart loop that prevents you from reading logs.
 app.get('/readyz', async (c) => {
   try { await sql`select 1`; return c.json({ ok: true, db: true, ts: Date.now() }); }
   catch (e) { return c.json({ ok: false, db: false, error: e.message }, 503); }
@@ -66,6 +63,10 @@ app.post('/setup', async (c) => {
     return c.json({ ok: false, error: e.message, stack: e.stack?.split('\n').slice(0, 5) }, 500);
   }
 });
+
+app.use('*', loadUser);
+app.use('*', csrfGuard);
+app.use('*', async (c, next) => { c.set('csrf', csrfToken(c)); await next(); });
 
 // Order matters: public routes (auth + pub) must be mounted before the
 // auth-protected routers, otherwise their `*` guard middleware would
