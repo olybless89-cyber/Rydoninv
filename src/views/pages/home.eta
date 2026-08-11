@@ -121,7 +121,9 @@
     <div class="grid g4">
       <% it.coins.forEach(function(c){ %>
         <div class="card coin">
-          <div class="coin-top" style="--grad:<%= c.grad %>"><span><%= c.ticker %></span></div>
+          <div class="coin-top">
+            <span class="coin-logo-lg"><%~ it.coinLogo(c.ticker, 48) %></span>
+          </div>
           <div class="coin-body">
             <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px">
               <h3><%= c.name %></h3>

@@ -5,6 +5,7 @@ import { plans as plansT, traderTrades, traders as tradersT } from '../db/schema
 import { render, partial, eta } from '../lib/view.js';
 import { traderStats, platformStats, livePrices } from '../lib/stats.js';
 import * as fmt from '../lib/money.js';
+import { coinLogo } from '../lib/icons.js';
 
 export const pub = new Hono();
 
@@ -41,7 +42,7 @@ const COIN_META = [
 
 async function tickerHtml() {
   const prices = await livePrices(10);
-  return eta.render('partials/ticker', { ...fmt, prices });
+  return eta.render('partials/ticker', { ...fmt, prices, coinLogo });
 }
 
 pub.get('/', async (c) => {
@@ -61,7 +62,7 @@ pub.get('/', async (c) => {
   const decorated = plans.map((p, i) => ({ ...p, featured: i === featuredIdx }));
 
   const body = eta.render('pages/home', {
-    ...fmt, stats, traders, plans: decorated, coins, assets: ASSETS, intel: INTEL,
+    ...fmt, stats, traders, plans: decorated, coins, assets: ASSETS, intel: INTEL, coinLogo,
   });
   return render(c, 'layouts/site', { body, tickerHtml: tick });
 });
