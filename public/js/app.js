@@ -40,3 +40,4 @@ document.body.addEventListener('click', (e) => {
   const el = e.target.closest('[data-confirm]');
   if (el && !confirm(el.dataset.confirm)) { e.preventDefault(); e.stopPropagation(); }
 }, true);
+// deploy trigger 2026-08-12T09:25:23Z
