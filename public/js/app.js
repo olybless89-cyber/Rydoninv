@@ -41,3 +41,4 @@ document.body.addEventListener('click', (e) => {
   if (el && !confirm(el.dataset.confirm)) { e.preventDefault(); e.stopPropagation(); }
 }, true);
 // deploy trigger 2026-08-12T09:25:23Z
+// trigger Wed Aug 12 09:30:19 UTC 2026
