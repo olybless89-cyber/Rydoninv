@@ -39,7 +39,7 @@ const shell = async (c, view, data, title) => {
     unreadCount(u.id),
     livePrices(6),
   ]);
-  const body = eta.render(view, { ...fmt, ...data, user: u, csrf: c.get('csrf') });
+  const body = eta.render(view, { ...fmt, ...data, user: u, csrf: c.get('csrf'), coinLogo });
   return render(c, 'layouts/app', { body, title, nav: NAV, bal, unread, watch, coinLogo });
 };
 
