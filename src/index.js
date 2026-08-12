@@ -105,12 +105,31 @@ const port = Number(process.env.PORT || 3000);
 serve({ fetch: app.fetch, port }, (info) => {
   console.log(`[web] listening on :${info.port}`);
   migrate()
-    .then(() => {
+    .then(async () => {
       console.log('[web] schema ready');
+      await autoSeed(); // create admin + demo + plans/traders/bots if DB is empty
       if (process.env.RUN_ENGINE !== 'false') startEngine();
     })
     .catch((err) => console.error('[web] migration failed (check DATABASE_URL):', err.message));
 });
+
+// Auto-seed: if there's no admin user yet, run the seed script so the
+// app is usable immediately after the first deploy — no shell, no
+// SETUP_TOKEN, no manual step. The seed is idempotent (ON CONFLICT DO
+// NOTHING + existence checks), so this is safe on every boot.
+async function autoSeed() {
+  if (process.env.AUTO_SEED === 'false') return;
+  try {
+    const [{ count }] = await sql`select count(*)::int count from users where role = 'admin'`;
+    if (count > 0) { console.log('[seed] admin already present — skipping auto-seed'); return; }
+    console.log('[seed] no admin found — running auto-seed (creates admin, demo, plans, traders, bots)…');
+    const { seed } = await import('./db/seed.js');
+    await seed();
+    console.log('[seed] auto-seed complete');
+  } catch (e) {
+    console.error('[seed] auto-seed failed (non-fatal):', e.message);
+  }
+}
 
 const bye = async () => { console.log('[web] shutting down'); await sql.end({ timeout: 5 }); process.exit(0); };
 process.on('SIGTERM', bye);
