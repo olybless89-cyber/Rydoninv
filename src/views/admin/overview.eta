@@ -1,39 +1,220 @@
-<div class="page-head"><div><h1>Admin</h1>
-  <p class="small" style="margin:4px 0 0">Platform position as of right now.</p></div></div>
+<%
+  const maxFlow = Math.max(1, ...it.flow.map(f => Math.max(Number(f.dep), Number(f.wd))));
+  const growthVals = it.growth.map(g => g.n);
+  const growthMax = Math.max(1, ...growthVals);
+  const sparkPts = growthVals.map((v, i) => `${(i/(growthVals.length-1))*100},${30-(v/growthMax)*26}`).join(' ');
+%>
 
-<div class="grid g4" style="margin-bottom:22px">
-  <div class="stat"><div class="stat-k">Registered users</div><div class="stat-v"><%= it.k.users %></div>
-    <div class="stat-sub"><%= it.k.new_users %> joined in the last 7 days</div></div>
-  <div class="stat"><div class="stat-k">Deposits confirmed</div><div class="stat-v"><%= it.usd(it.k.deposits) %></div>
-    <div class="stat-sub"><%= it.usd(it.k.withdrawals) %> withdrawn</div></div>
-  <div class="stat"><div class="stat-k">Awaiting review</div><div class="stat-v <%= Number(it.k.pending) ? 'down':'' %>"><%= it.k.pending %></div>
-    <div class="stat-sub"><%= it.usd(it.k.pending_value) %> in the queue</div></div>
-  <div class="stat"><div class="stat-k">Capital in plans</div><div class="stat-v"><%= it.usd(it.k.staked) %></div>
-    <div class="stat-sub"><%= it.k.active_plans %> active · <%= it.k.open_trades %> open trades</div></div>
+<div class="page-head">
+  <div>
+    <div class="adm-eyebrow">Admin Overview</div>
+    <h1>Platform Dashboard</h1>
+    <p class="small" style="margin:6px 0 0">Real-time platform position as of <%= new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) %>.</p>
+  </div>
+  <div class="adm-head-actions">
+    <a class="btn btn-quiet btn-sm" href="/admin/deposits">Review deposits</a>
+    <a class="btn btn-quiet btn-sm" href="/admin/users">Manage users</a>
+  </div>
 </div>
 
-<div class="card-head"><h3 style="font-family:var(--ff-display)">Review queue</h3>
-  <div style="display:flex;gap:8px"><a class="btn btn-quiet btn-sm" href="/admin/deposits">Deposits</a>
-  <a class="btn btn-quiet btn-sm" href="/admin/withdrawals">Withdrawals</a></div></div>
+<!-- ── KPI cards row ────────────────────────────────────────────── -->
+<div class="adm-kpi-grid">
 
-<div class="table-wrap">
-  <table>
-    <thead><tr><th>Requested</th><th>Client</th><th>Type</th><th>Method</th><th class="num">Amount</th><th></th></tr></thead>
-    <tbody>
-      <% if (!it.queue.length) { %>
-        <tr><td colspan="6"><div class="empty"><h4>Queue is clear</h4>
-          <p class="small">New deposit and withdrawal requests appear here.</p></div></td></tr>
-      <% } %>
-      <% it.queue.forEach(function(t){ %>
-        <tr>
-          <td class="small muted"><%= it.ago(t.created_at) %></td>
-          <td><b><%= t.first_name %> <%= t.last_name %></b><div class="small muted"><%= t.email %></div></td>
-          <td><span class="badge <%= t.type==='deposit'?'badge-live':'badge-warn' %>"><%= t.type %></span></td>
-          <td class="small"><%= t.method.replace('_',' ').toUpperCase() %></td>
-          <td class="num"><%= it.usd(t.amount) %></td>
-          <td style="text-align:right"><a class="btn btn-quiet btn-sm" href="/admin/<%= t.type %>s">Review</a></td>
-        </tr>
+  <div class="stat adm-kpi">
+    <div class="adm-kpi-top">
+      <div class="adm-kpi-icon adm-ico-blue">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.9"/></svg>
+      </div>
+      <div class="adm-kpi-spark"><svg viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points="<%= sparkPts %>" fill="none" stroke="var(--blue-hi)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    </div>
+    <div class="stat-k">Total Users</div>
+    <div class="stat-v"><%= it.k.users %></div>
+    <div class="stat-sub"><span class="adm-up">+<%= it.k.new_users_24h %></span> today · <%= it.k.new_users %> this week<% if (Number(it.k.suspended)) { %> · <span class="adm-down"><%= it.k.suspended %> suspended</span><% } %></div>
+  </div>
+
+  <div class="stat adm-kpi">
+    <div class="adm-kpi-top">
+      <div class="adm-kpi-icon adm-ico-green">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v13M6 11l6 6 6-6M4 21h16"/></svg>
+      </div>
+      <div class="adm-kpi-trend adm-up">+<%= it.k.deposits_24h %></div>
+    </div>
+    <div class="stat-k">Deposits Confirmed</div>
+    <div class="stat-v"><%= it.usd(it.k.deposits) %></div>
+    <div class="stat-sub"><%= it.k.deposits_24h %> deposits in 24h · <%= it.usd(it.k.deposits_24h_val) %> today</div>
+  </div>
+
+  <div class="stat adm-kpi">
+    <div class="adm-kpi-top">
+      <div class="adm-kpi-icon adm-ico-red">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21V8M6 13l6-6 6 6M4 3h16"/></svg>
+      </div>
+    </div>
+    <div class="stat-k">Withdrawals Sent</div>
+    <div class="stat-v"><%= it.usd(it.k.withdrawals) %></div>
+    <div class="stat-sub">Net flow: <span class="<%= Number(it.k.deposits)-Number(it.k.withdrawals) >= 0 ? 'adm-up':'adm-down' %>"><%= it.usd(Number(it.k.deposits)-Number(it.k.withdrawals)) %></span></div>
+  </div>
+
+  <div class="stat adm-kpi">
+    <div class="adm-kpi-top">
+      <div class="adm-kpi-icon adm-ico-amber <%= Number(it.k.pending) ? 'adm-pulse' : '' %>">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      </div>
+    </div>
+    <div class="stat-k">Awaiting Review</div>
+    <div class="stat-v <%= Number(it.k.pending) ? 'down':'' %>"><%= it.k.pending %></div>
+    <div class="stat-sub"><%= it.usd(it.k.pending_value) %> in the queue</div>
+  </div>
+
+</div>
+
+<!-- ── Revenue flow chart + capital ─────────────────────────────── -->
+<div class="adm-row-2">
+
+  <div class="adm-chart-card">
+    <div class="adm-chart-head">
+      <div>
+        <h3>Deposit / Withdrawal Flow</h3>
+        <p class="small muted">Last 7 days · approved transactions</p>
+      </div>
+      <div class="adm-chart-legend">
+        <span class="adm-leg adm-leg-green">Deposits</span>
+        <span class="adm-leg adm-leg-red">Withdrawals</span>
+      </div>
+    </div>
+    <div class="adm-chart-body">
+      <% it.flow.forEach(function(f){ const dh=(Number(f.dep)/maxFlow)*100; const wh=(Number(f.wd)/maxFlow)*100; %>
+        <div class="adm-bar-col">
+          <div class="adm-bars">
+            <div class="adm-bar adm-bar-dep" style="height:<%= Math.max(dh,2) %>%" title="Deposits: <%= it.usd(f.dep) %>"></div>
+            <div class="adm-bar adm-bar-wd" style="height:<%= Math.max(wh,2) %>%" title="Withdrawals: <%= it.usd(f.wd) %>"></div>
+          </div>
+          <div class="adm-bar-label"><%= new Date(f.day).toLocaleDateString('en-US',{weekday:'short'})[0] %></div>
+        </div>
       <% }) %>
-    </tbody>
-  </table>
+    </div>
+  </div>
+
+  <div class="stat adm-cap-card">
+    <div class="adm-kpi-top">
+      <div class="adm-kpi-icon adm-ico-violet">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 17l5-6 4 4 6-8"/><path d="M3 21h18"/></svg>
+      </div>
+    </div>
+    <div class="stat-k">Capital in Plans</div>
+    <div class="stat-v"><%= it.usd(it.k.staked) %></div>
+    <div class="adm-cap-meta">
+      <div><span class="adm-metric"><%= it.k.active_plans %></span> active plans</div>
+      <div><span class="adm-metric"><%= it.k.open_trades %></span> open trades</div>
+    </div>
+    <div class="adm-cap-bar">
+      <div class="adm-cap-fill" style="width:<%= Math.min(100, (Number(it.k.staked)/Math.max(1,Number(it.k.deposits)))*100) %>%"></div>
+    </div>
+    <div class="stat-sub"><%= it.pct(Number(it.k.staked)/Math.max(1,Number(it.k.deposits))*100) %> of deposits deployed</div>
+  </div>
+
+</div>
+
+<!-- ── Review queue (inline actions) + activity feed ────────────── -->
+<div class="adm-row-2">
+
+  <div class="adm-queue-card">
+    <div class="card-head">
+      <h3 style="font-family:var(--ff-display)">Review Queue</h3>
+      <div style="display:flex;gap:8px">
+        <a class="btn btn-quiet btn-sm" href="/admin/deposits">Deposits</a>
+        <a class="btn btn-quiet btn-sm" href="/admin/withdrawals">Withdrawals</a>
+      </div>
+    </div>
+    <div class="adm-queue-body">
+      <% if (!it.queue.length) { %>
+        <div class="empty"><h4>Queue is clear</h4>
+          <p class="small">New deposit and withdrawal requests appear here for approval.</p></div>
+      <% } else { %>
+        <% it.queue.forEach(function(t){ %>
+          <div class="adm-queue-item">
+            <div class="adm-queue-avatar"><%= it.initials(t.first_name, t.last_name) %></div>
+            <div class="adm-queue-info">
+              <div class="adm-queue-name"><%= t.first_name %> <%= t.last_name %></div>
+              <div class="small muted"><%= t.email %> · <%= t.ago ? '' : '' %><%= it.ago(t.created_at) %></div>
+            </div>
+            <div class="adm-queue-amount">
+              <div class="adm-queue-val"><%= it.usd(t.amount) %></div>
+              <div class="small muted"><%= t.method.replace(/_/g,' ').toUpperCase() %></div>
+            </div>
+            <span class="badge <%= t.type==='deposit'?'badge-live':'badge-warn' %>"><%= t.type %></span>
+            <div class="adm-queue-actions">
+              <form method="post" action="/admin/transactions/<%= t.id %>/approve">
+                <input type="hidden" name="_csrf" value="<%= it.csrf %>">
+                <button class="adm-act adm-act-approve" type="submit" title="Approve">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg>
+                </button>
+              </form>
+              <form method="post" action="/admin/transactions/<%= t.id %>/reject">
+                <input type="hidden" name="_csrf" value="<%= it.csrf %>">
+                <button class="adm-act adm-act-reject" type="submit" title="Reject">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+              </form>
+            </div>
+          </div>
+        <% }) %>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="adm-activity-card">
+    <div class="card-head">
+      <h3 style="font-family:var(--ff-display)">Recent Activity</h3>
+      <a class="btn btn-quiet btn-sm" href="/admin/users">View all</a>
+    </div>
+    <div class="adm-activity-list">
+      <% it.activity.forEach(function(a){ %>
+        <div class="adm-act-item">
+          <div class="adm-act-dot adm-act-dot-<%= a.kind %>"></div>
+          <div class="adm-act-body">
+            <div class="adm-act-text">
+              <b><%= a.name %></b>
+              <% if (a.kind === 'deposit') { %> placed a deposit <% if (Number(a.amount)) { %> of <span class="adm-up"><%= it.usd(a.amount) %></span><% } %>
+              <% } else if (a.kind === 'signup') { %> joined the platform<% } %>
+            </div>
+            <div class="small muted"><%= it.ago(a.created_at) %></div>
+          </div>
+          <% if (a.kind === 'deposit' && a.status) { %>
+            <span class="badge <%= a.status==='approved'?'badge-live':'badge-warn' %>"><%= a.status %></span>
+          <% } %>
+        </div>
+      <% }) %>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Top depositors ───────────────────────────────────────────── -->
+<div class="adm-top-card">
+  <div class="card-head">
+    <h3 style="font-family:var(--ff-display)">Top Depositors</h3>
+    <a class="btn btn-quiet btn-sm" href="/admin/users">All users</a>
+  </div>
+  <div class="table-wrap" style="border:0;border-radius:0;box-shadow:none;background:transparent">
+    <table>
+      <thead><tr><th>#</th><th>Client</th><th>Country</th><th class="num">Lifetime Deposits</th><th></th></tr></thead>
+      <tbody>
+        <% it.topUsers.forEach(function(u, i){ %>
+          <tr>
+            <td class="adm-rank"><%= i+1 %></td>
+            <td>
+              <div style="display:flex;align-items:center;gap:10px">
+                <div class="avatar" style="width:32px;height:32px;font-size:.72rem"><%= it.initials(u.first_name, u.last_name) %></div>
+                <div><b><%= u.first_name %> <%= u.last_name %></b><div class="small muted"><%= u.email %></div></div>
+              </div>
+            </td>
+            <td class="small"><%= u.country || '—' %></td>
+            <td class="num"><%= it.usd(u.total) %></td>
+            <td style="text-align:right"><a class="btn btn-quiet btn-sm" href="/admin/users?q=<%= encodeURIComponent(u.email) %>">View</a></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
 </div>
