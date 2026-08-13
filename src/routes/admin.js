@@ -7,8 +7,9 @@ import {
 } from '../db/schema.js';
 import { requireAdmin } from '../lib/auth.js';
 import { render, eta } from '../lib/view.js';
-import { traderStats, balance, unreadCount } from '../lib/stats.js';
+import { traderStats, balance, unreadCount, livePrices } from '../lib/stats.js';
 import * as fmt from '../lib/money.js';
+import { coinLogo } from '../lib/icons.js';
 
 export const admin = new Hono();
 admin.use('*', requireAdmin);
@@ -31,9 +32,11 @@ const NAV = [
 
 const shell = async (c, view, data, title) => {
   const u = c.get('user');
-  const [bal, unread] = await Promise.all([balance(u.id), unreadCount(u.id)]);
-  const body = eta.render(view, { ...fmt, ...data, user: u, csrf: c.get('csrf') });
-  return render(c, 'layouts/app', { body, title, nav: NAV, bal, unread });
+  const [bal, unread, watch] = await Promise.all([
+    balance(u.id), unreadCount(u.id), livePrices(6),
+  ]);
+  const body = eta.render(view, { ...fmt, ...data, user: u, csrf: c.get('csrf'), coinLogo });
+  return render(c, 'layouts/app', { body, title, nav: NAV, bal, unread, watch, coinLogo, adminMode: true });
 };
 
 /* ---------------- overview ---------------- */
