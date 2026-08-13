@@ -10,7 +10,7 @@
 <link rel="icon" href="/img/mark.svg" type="image/svg+xml">
 <script src="https://unpkg.com/htmx.org@2.0.4" defer></script>
 </head>
-<body>
+<body class="<%= it.adminMode ? 'is-admin' : '' %>">
 <div class="app">
 
   <aside class="side">

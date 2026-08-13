@@ -483,3 +483,156 @@ table .up{color:var(--up)} table .down{color:var(--down)}
   .side.open{transform:translateX(0)}
   .scrim{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99}
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   GLASSMORPHISM — frosted glass shell, glow effects, premium depth
+   Applies to both user dashboard and admin panel
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Ambient background glow behind the whole app */
+.app{position:relative}
+.app::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(ellipse 600px 400px at 15% 0%,rgba(47,107,255,.08),transparent 60%),
+    radial-gradient(ellipse 500px 500px at 85% 100%,rgba(22,199,132,.05),transparent 60%)}
+
+/* ── Frosted glass sidebar ─────────────────────────────────────────── */
+.side{
+  background:linear-gradient(180deg,rgba(14,23,41,.72),rgba(7,11,20,.85));
+  backdrop-filter:blur(24px) saturate(180%);
+  -webkit-backdrop-filter:blur(24px) saturate(180%);
+  border-right:1px solid rgba(42,62,99,.4);
+  box-shadow:inset -1px 0 0 rgba(255,255,255,.02),4px 0 32px -12px rgba(0,0,0,.5)}
+.side .logo{position:relative}
+.side .logo::after{content:'';position:absolute;bottom:-12px;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(47,107,255,.3),transparent)}
+
+/* Sidebar nav items — glass hover with left accent bar */
+.side-grp a{position:relative;overflow:hidden;
+  background:transparent;border:1px solid transparent}
+.side-grp a::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
+  width:3px;height:0;border-radius:0 3px 3px 0;
+  background:linear-gradient(180deg,var(--blue-hi),var(--blue));
+  transition:height .22s var(--ease);box-shadow:0 0 8px rgba(47,107,255,.5)}
+.side-grp a:hover{
+  background:linear-gradient(90deg,rgba(47,107,255,.1),rgba(47,107,255,.02));
+  border-color:rgba(47,107,255,.15)}
+.side-grp a:hover::before{height:60%}
+.side-grp a[aria-current=page]{
+  background:linear-gradient(90deg,rgba(47,107,255,.16),rgba(47,107,255,.03));
+  border-color:rgba(47,107,255,.25);
+  box-shadow:inset 0 0 20px rgba(47,107,255,.06)}
+.side-grp a[aria-current=page]::before{height:70%}
+.side-grp a[aria-current=page] svg{filter:drop-shadow(0 0 6px rgba(77,130,255,.5))}
+
+/* ── Glass topbar ─────────────────────────────────────────────────── */
+.topbar{
+  position:relative;
+  background:linear-gradient(180deg,rgba(14,23,41,.6),rgba(10,16,32,.3));
+  backdrop-filter:blur(16px) saturate(160%);
+  -webkit-backdrop-filter:blur(16px) saturate(160%);
+  border:1px solid rgba(42,62,99,.25);border-radius:var(--r-lg);
+  padding:var(--s-4) var(--s-5);
+  box-shadow:0 4px 24px -8px rgba(0,0,0,.4)}
+
+/* Market strip ticks — subtle glass pills */
+.ms-tick{padding:4px 14px;border-radius:var(--r-sm);margin:2px;
+  border:1px solid transparent;transition:background .15s var(--ease)}
+.ms-tick:hover{background:rgba(47,107,255,.06);border-color:rgba(42,62,99,.3)}
+
+/* Balance chip — glass with glow */
+.balance-chip{
+  background:linear-gradient(135deg,rgba(47,107,255,.12),rgba(47,107,255,.04));
+  backdrop-filter:blur(8px);
+  border:1px solid rgba(47,107,255,.25);
+  box-shadow:0 0 20px -4px rgba(47,107,255,.2),inset 0 1px 0 rgba(255,255,255,.04)}
+
+/* ── Glass stat cards ─────────────────────────────────────────────── */
+.stat{
+  background:linear-gradient(135deg,rgba(19,30,53,.7),rgba(14,23,41,.5));
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  border:1px solid rgba(42,62,99,.35);
+  box-shadow:0 8px 32px -12px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.03);
+  transition:transform .2s var(--ease),box-shadow .2s var(--ease),border-color .2s var(--ease)}
+.stat:hover{transform:translateY(-2px);
+  border-color:rgba(47,107,255,.3);
+  box-shadow:0 12px 40px -8px rgba(0,0,0,.6),0 0 24px -6px rgba(47,107,255,.15),inset 0 1px 0 rgba(255,255,255,.05)}
+.stat::before{height:3px;opacity:.9;
+  box-shadow:0 0 12px rgba(47,107,255,.4)}
+
+/* ── Glass tables ─────────────────────────────────────────────────── */
+.table-wrap{
+  background:linear-gradient(135deg,rgba(19,30,53,.6),rgba(14,23,41,.4));
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  border:1px solid rgba(42,62,99,.35);
+  box-shadow:0 8px 32px -12px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.03)}
+table thead th{
+  background:linear-gradient(180deg,rgba(12,20,36,.8),rgba(12,20,36,.5));
+  backdrop-filter:blur(8px)}
+table tbody tr{transition:background .15s var(--ease)}
+table tbody tr:hover td{background:linear-gradient(90deg,rgba(47,107,255,.06),rgba(47,107,255,.02))}
+
+/* ── Glass cards / chart shells ───────────────────────────────────── */
+.chart-shell,.card-head,.plan,.risk{
+  background:linear-gradient(135deg,rgba(19,30,53,.6),rgba(14,23,41,.4));
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border:1px solid rgba(42,62,99,.35);
+  box-shadow:0 8px 32px -12px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.03)}
+.card-head{padding:var(--s-4) var(--s-5);border-radius:var(--r-lg) var(--r-lg) 0 0;
+  border-bottom:1px solid rgba(42,62,99,.25);
+  display:flex;align-items:center;justify-content:space-between;gap:var(--s-4);flex-wrap:wrap}
+
+/* ── Glass badges ─────────────────────────────────────────────────── */
+.badge,.badge-live,.badge-warn,.badge-blue{
+  backdrop-filter:blur(6px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+
+/* ── Glass notices ────────────────────────────────────────────────── */
+.notice{backdrop-filter:blur(8px);box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+
+/* ── Glass page heading ───────────────────────────────────────────── */
+.page-head{padding:var(--s-4) var(--s-5);margin-bottom:var(--s-5);
+  background:linear-gradient(135deg,rgba(19,30,53,.4),rgba(14,23,41,.2));
+  backdrop-filter:blur(8px);
+  border:1px solid rgba(42,62,99,.2);border-radius:var(--r-lg)}
+.page-head h1{font-size:clamp(1.4rem,2.4vw,1.8rem)}
+
+/* ── Glass empty states ───────────────────────────────────────────── */
+.empty{background:linear-gradient(135deg,rgba(19,30,53,.3),transparent);
+  border-radius:var(--r-md)}
+
+/* ── Admin-specific accent (amber tint to distinguish from user dash) ─ */
+.is-admin .app::before{
+  background:
+    radial-gradient(ellipse 600px 400px at 15% 0%,rgba(245,165,36,.06),transparent 60%),
+    radial-gradient(ellipse 500px 500px at 85% 100%,rgba(47,107,255,.05),transparent 60%)}
+.is-admin .side{
+  background:linear-gradient(180deg,rgba(20,26,22,.72),rgba(7,11,20,.85));
+  border-right-color:rgba(245,165,36,.2)}
+.is-admin .side-grp a[aria-current=page]{
+  background:linear-gradient(90deg,rgba(245,165,36,.14),rgba(245,165,36,.02));
+  border-color:rgba(245,165,36,.25);
+  box-shadow:inset 0 0 20px rgba(245,165,36,.05)}
+.is-admin .side-grp a[aria-current=page]::before{
+  background:linear-gradient(180deg,var(--warn),#d97e0e);
+  box-shadow:0 0 8px rgba(245,165,36,.5)}
+.is-admin .side-grp a:hover{
+  background:linear-gradient(90deg,rgba(245,165,36,.08),rgba(245,165,36,.01));
+  border-color:rgba(245,165,36,.12)}
+.is-admin .stat::before{background:linear-gradient(90deg,var(--warn),transparent 70%);
+  box-shadow:0 0 12px rgba(245,165,36,.3)}
+.is-admin .balance-chip{
+  background:linear-gradient(135deg,rgba(245,165,36,.1),rgba(245,165,36,.03));
+  border-color:rgba(245,165,36,.2);
+  box-shadow:0 0 20px -4px rgba(245,165,36,.15)}
+
+/* ── Avatar glow ──────────────────────────────────────────────────── */
+.avatar{box-shadow:0 0 16px -4px rgba(47,107,255,.4),inset 0 1px 0 rgba(255,255,255,.1)}
+.is-admin .avatar{background:linear-gradient(135deg,var(--warn),#8a5a0a);
+  box-shadow:0 0 16px -4px rgba(245,165,36,.4),inset 0 1px 0 rgba(255,255,255,.1)}
+
+/* ── Scrollbar refinement for glass theme ─────────────────────────── */
+::-webkit-scrollbar-thumb{background:rgba(42,62,99,.6);border-radius:99px}
+::-webkit-scrollbar-thumb:hover{background:rgba(47,107,255,.4)}
