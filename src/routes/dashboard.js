@@ -11,6 +11,7 @@ import { render, eta } from '../lib/view.js';
 import { portfolio, balance, traderStats, myCopyPositions, unreadCount, livePrices } from '../lib/stats.js';
 import { mailPlanActivated } from '../lib/mail.js';
 import { getWallets } from '../lib/settings.js';
+import { coinLogo } from '../lib/icons.js';
 import * as fmt from '../lib/money.js';
 
 export const dash = new Hono();
@@ -39,15 +40,17 @@ const NAV = [
 
 const shell = async (c, view, data, title) => {
   const u = c.get('user');
-  const [bal, unread] = await Promise.all([balance(u.id), unreadCount(u.id)]);
-  const body = eta.render(view, { ...fmt, ...data, user: u, csrf: c.get('csrf') });
-  return render(c, 'layouts/app', { body, title, nav: NAV, bal, unread });
+  const [bal, unread, watch] = await Promise.all([
+    balance(u.id), unreadCount(u.id), livePrices(6),
+  ]);
+  const body = eta.render(view, { ...fmt, ...data, user: u, csrf: c.get('csrf'), coinLogo });
+  return render(c, 'layouts/app', { body, title, nav: NAV, bal, unread, watch, coinLogo });
 };
 
 /* ---------------- overview ---------------- */
 dash.get('/dashboard', async (c) => {
   const u = c.get('user');
-  const [pf, copies, recent, invs] = await Promise.all([
+  const [pf, copies, recent, invs, markets] = await Promise.all([
     portfolio(u.id),
     myCopyPositions(u.id),
     db.select().from(ledger).where(eq(ledger.userId, u.id)).orderBy(desc(ledger.createdAt)).limit(8),
@@ -55,8 +58,9 @@ dash.get('/dashboard', async (c) => {
         from investments i join plans p on p.id = i.plan_id
         where i.user_id = ${u.id} and i.status = 'active'
         order by i.started_at desc limit 5`,
+    livePrices(8),
   ]);
-  return shell(c, 'dashboard/overview', { pf, copies, recent, invs }, 'Dashboard');
+  return shell(c, 'dashboard/overview', { pf, copies, recent, invs, markets }, 'Dashboard');
 });
 
 dash.get('/dashboard/partials/balance', async (c) => {
@@ -241,8 +245,10 @@ dash.post('/dashboard/copy/stop', async (c) => {
 });
 
 /* ---------------- markets, bots, notifications, settings ---------------- */
-dash.get('/dashboard/markets', async (c) =>
-  shell(c, 'dashboard/markets', {}, 'Live markets'));
+dash.get('/dashboard/markets', async (c) => {
+  const prices = await livePrices(12);
+  return shell(c, 'dashboard/markets', { prices }, 'Live markets');
+});
 
 dash.get('/dashboard/bots', async (c) => {
   const u = c.get('user');

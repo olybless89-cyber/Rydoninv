@@ -7,13 +7,14 @@ import {
 } from '../db/schema.js';
 import { requireAdmin } from '../lib/auth.js';
 import { render, eta } from '../lib/view.js';
-import { traderStats, balance, unreadCount } from '../lib/stats.js';
+import { traderStats, balance, unreadCount, livePrices } from '../lib/stats.js';
 import { getWallets, setWallets } from '../lib/settings.js';
 import {
   mailDepositConfirmed, mailDepositDeclined, mailWithdrawalSent, mailWithdrawalDeclined,
   mailKycApproved, mailKycRejected,
 } from '../lib/mail.js';
 import * as fmt from '../lib/money.js';
+import { coinLogo } from '../lib/icons.js';
 
 export const admin = new Hono();
 admin.use('*', requireAdmin);
@@ -41,9 +42,11 @@ const NAV = [
 
 const shell = async (c, view, data, title) => {
   const u = c.get('user');
-  const [bal, unread] = await Promise.all([balance(u.id), unreadCount(u.id)]);
-  const body = eta.render(view, { ...fmt, ...data, user: u, csrf: c.get('csrf') });
-  return render(c, 'layouts/app', { body, title, nav: NAV, bal, unread });
+  const [bal, unread, watch] = await Promise.all([
+    balance(u.id), unreadCount(u.id), livePrices(6),
+  ]);
+  const body = eta.render(view, { ...fmt, ...data, user: u, csrf: c.get('csrf'), coinLogo });
+  return render(c, 'layouts/app', { body, title, nav: NAV, bal, unread, watch, coinLogo, adminMode: true });
 };
 
 /* ---------------- overview ---------------- */
@@ -57,14 +60,55 @@ admin.get('/admin', async (c) => {
            (select coalesce(sum(amount),0) from transactions where status='pending')::text  pending_value,
            (select count(*) from investments where status='active')                         active_plans,
            (select coalesce(sum(principal),0) from investments where status='active')::text staked,
-           (select count(*) from trader_trades where status='open')                         open_trades`;
+           (select count(*) from trader_trades where status='open')                         open_trades,
+           (select count(*) from users where role='user' and status='suspended')            suspended,
+           (select count(*) from transactions where type='deposit' and status='approved'
+              and created_at > now()-interval '24 hours')                                   deposits_24h,
+           (select coalesce(sum(amount),0) from transactions where type='deposit' and status='approved'
+              and created_at > now()-interval '24 hours')::text                             deposits_24h_val,
+           (select count(*) from users where role='user' and created_at > now()-interval '24 hours') new_users_24h`;
+
+  const flow = await sql`
+    select d::date as day,
+           coalesce((select sum(amount) from transactions where type='deposit'    and status='approved' and created_at::date = d),0)::text as dep,
+           coalesce((select sum(amount) from transactions where type='withdrawal' and status='approved' and created_at::date = d),0)::text as wd
+    from generate_series(now()-interval '6 days', now(), '1 day') d
+    order by d`;
+
+  const growth = await sql`
+    select d::date as day,
+           coalesce((select count(*) from users where role='user' and created_at::date = d),0) as n
+    from generate_series(now()-interval '6 days', now(), '1 day') d
+    order by d`;
+
+  const topUsers = await sql`
+    select u.id, u.first_name, u.last_name, u.email, u.country,
+           coalesce(sum(t.amount),0)::text as total
+    from users u left join transactions t on t.user_id = u.id
+      and t.type = 'deposit' and t.status = 'approved'
+    where u.role = 'user'
+    group by u.id, u.first_name, u.last_name, u.email, u.country
+    order by total desc limit 5`;
+
+  const activity = await sql`
+    (select 'deposit' as kind, t.created_at, t.amount::text, t.status,
+            concat(u.first_name,' ',u.last_name) as name
+     from transactions t join users u on u.id = t.user_id
+     where t.type = 'deposit'
+     order by t.created_at desc limit 4)
+    union all
+    (select 'signup' as kind, u.created_at, '0'::text, 'approved' as status,
+            concat(u.first_name,' ',u.last_name) as name
+     from users u where u.role = 'user'
+     order by u.created_at desc limit 4)
+    order by created_at desc limit 8`;
 
   const queue = await sql`
     select t.*, u.first_name, u.last_name, u.email
     from transactions t join users u on u.id = t.user_id
     where t.status = 'pending' order by t.created_at asc limit 12`;
 
-  return shell(c, 'admin/overview', { k, queue }, 'Admin');
+  return shell(c, 'admin/overview', { k, queue, flow, growth, topUsers, activity }, 'Admin');
 });
 
 /* ---------------- transaction review ---------------- */

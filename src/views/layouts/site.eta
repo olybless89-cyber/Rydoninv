@@ -7,8 +7,8 @@
 <meta name="description" content="<%= it.desc || 'Trade forex, crypto, indices, shares and commodities with live pricing, copy trading and automated strategies.' %>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/css/app.css">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/app.css?v=3">
 <link rel="icon" href="/img/mark.svg" type="image/svg+xml">
 <meta property="og:title" content="<%= it.brand.name %> — Trade global markets with confidence">
 <meta property="og:type" content="website">
@@ -20,10 +20,13 @@
   <div class="wrap nav-in">
     <a class="logo" href="/">
       <svg class="logo-mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-        <rect width="32" height="32" rx="8" fill="#2F6BFF"/>
-        <path d="M8 22L13 13l4 5 3-4 4 8" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect width="32" height="32" rx="9" fill="#0A1020"/>
+        <path d="M4 22a12 12 0 0124-6" fill="none" stroke="url(#s-arc)" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M7 22L13 12l4 6 3-5 5 9" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="25" cy="9" r="2.4" fill="#16C784"/>
+        <defs><linearGradient id="s-arc" x1="0" y1="32" x2="32" y2="0" gradientUnits="userSpaceOnUse"><stop stop-color="#16C784"/><stop offset="1" stop-color="#4D82FF"/></linearGradient></defs>
       </svg>
-      <%= it.brand.name %>
+      <span>Rydon<em>Invest</em></span>
     </a>
 
     <nav class="nav-links" id="navlinks">
@@ -61,10 +64,13 @@
       <div>
         <a class="logo" href="/" style="margin-bottom:14px">
           <svg class="logo-mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-            <rect width="32" height="32" rx="8" fill="#2F6BFF"/>
-            <path d="M8 22L13 13l4 5 3-4 4 8" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+            <rect width="32" height="32" rx="9" fill="#0A1020"/>
+            <path d="M4 22a12 12 0 0124-6" fill="none" stroke="url(#f-arc)" stroke-width="2.4" stroke-linecap="round"/>
+            <path d="M7 22L13 12l4 6 3-5 5 9" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="25" cy="9" r="2.4" fill="#16C784"/>
+            <defs><linearGradient id="f-arc" x1="0" y1="32" x2="32" y2="0" gradientUnits="userSpaceOnUse"><stop stop-color="#16C784"/><stop offset="1" stop-color="#4D82FF"/></linearGradient></defs>
           </svg>
-          <%= it.brand.name %>
+          <span>Rydon<em>Invest</em></span>
         </a>
         <p class="small" style="max-width:38ch">Multi-asset trading, copy portfolios and automated strategies in one account.</p>
       </div>
@@ -111,6 +117,6 @@
   </div>
 </footer>
 
-<script src="/js/app.js" defer></script>
+<script src="/js/app.js?v=2" defer></script>
 </body>
 </html>
