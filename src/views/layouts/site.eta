@@ -106,13 +106,7 @@
     </div>
 
     <div class="foot-base">
-      <p class="risk">
-        Trading leveraged products carries a high level of risk and can result in the loss of all
-        capital. Past performance of any trader, strategy or automated system shown on this site is
-        not a reliable indicator of future results. Only trade with money you can afford to lose,
-        and seek independent advice if you are unsure.
-      </p>
-      <p style="margin-top:14px">© <%= it.brand.year %> <%= it.brand.name %>. All rights reserved.</p>
+      <p>© <%= it.brand.year %> <%= it.brand.name %>. All rights reserved.</p>
     </div>
   </div>
 </footer>
