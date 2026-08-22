@@ -162,6 +162,13 @@ export const mailPlanClosed = (u, planName, principal, accrued) => sendMail({
   refType: 'investment',
 });
 
+export const mailPlanPayout = (u, planName, amount, period, totalPeriods) => sendMail({
+  userId: u.id, to: u.email, template: 'mail/plan-payout',
+  subject: `Return paid — ${planName}`,
+  data: { firstName: u.firstName, planName, amount: Number(amount), period, totalPeriods },
+  refType: 'investment',
+});
+
 export const mailKycApproved = (u) => sendMail({
   userId: u.id, to: u.email, template: 'mail/kyc-approved',
   subject: 'Identity verified',

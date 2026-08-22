@@ -16,7 +16,10 @@ Node.js + Hono (web) + Drizzle ORM + Postgres + Eta templates. Single-process.
 - Admin routes in `src/routes/admin.js`, user routes in `src/routes/dashboard.js`.
 - Mail: `src/lib/mail.js` renders `.eta` body wrapped by `views/mail/layout.eta`, logs to `mail_log` table, sends via nodemailer SMTP (lazy, only when `SMTP_URL` set). Fire-and-forget with `.catch()`.
 - Settings: `src/lib/settings.js` — key/value store in `settings` table (jsonb). Wallet addresses stored under key `wallet_addresses`.
+- Uploads: `src/lib/uploads.js` saves multipart image files (KYC photos) to `public/uploads/<subdir>` (gitignored except `.gitkeep`), served at `/uploads/*`. Max 5 MB, JPG/PNG/WebP only.
+- Admin balance adjustments: `POST /admin/users/:id/adjust` takes `direction=add|deduct` + positive `amount` from the user edit page, or a signed `amount` (no direction) from the users-list quick form. Every adjustment is a ledger line, never a silent edit.
 
 ## Testing locally
 Needs Postgres. Start one, set `DATABASE_URL` in `.env`, run `node src/db/migrate.js && node src/db/seed.js`, then `RUN_ENGINE=false node src/index.js`.
 - CSRF note for curl: fetch the page with the cookie jar, grep the `_csrf` token, POST with the same jar. Token is stable per session.
+- Smoke test: `node test/e2e.js` — exercises admin login, balance add/deduct, KYC photo upload + approve, registration welcome mail, deposit wallet embed, and a full investment accrual-to-maturity cycle. Requires the seeded DB and a running server.

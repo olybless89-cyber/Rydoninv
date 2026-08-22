@@ -22,10 +22,14 @@
           <td class="small"><%= k.document_type.replace('_',' ') %><div class="small muted"><%= k.country || k.user_country || '—' %></div></td>
           <td class="small num"><%= k.document_number || '—' %></td>
           <td class="small">
-            <% if (k.front_url) { %><a href="<%= k.front_url %>" target="_blank" rel="noopener" class="small" style="color:var(--blue-hi)">front</a> <% } %>
-            <% if (k.back_url) { %><a href="<%= k.back_url %>" target="_blank" rel="noopener" class="small" style="color:var(--blue-hi)">back</a> <% } %>
-            <% if (k.selfie_url) { %><a href="<%= k.selfie_url %>" target="_blank" rel="noopener" class="small" style="color:var(--blue-hi)">selfie</a><% } %>
-            <% if (!k.front_url && !k.back_url && !k.selfie_url) { %>—<% } %>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <% [['front',k.front_url],['back',k.back_url],['selfie',k.selfie_url]].forEach(function([label,url]){ if (!url) return; %>
+                <a href="<%= url %>" target="_blank" rel="noopener" title="<%= label %>" style="display:block;width:52px;height:36px;border-radius:6px;overflow:hidden;border:1px solid var(--line-soft)">
+                  <img src="<%= url %>" alt="<%= label %>" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block">
+                </a>
+              <% }) %>
+              <% if (!k.front_url && !k.back_url && !k.selfie_url) { %>—<% } %>
+            </div>
           </td>
           <td><span class="badge <%= k.status==='approved'?'badge-live':k.status==='rejected'?'badge-warn':'badge-idle' %>"><%= k.status %></span></td>
           <td style="text-align:right;white-space:nowrap">

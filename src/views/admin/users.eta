@@ -5,6 +5,9 @@
   </form>
 </div>
 
+<% if (it.ok) { %><div class="notice notice-ok">Done.</div><% } %>
+<% if (it.error) { %><div class="notice notice-err"><%= it.error %></div><% } %>
+
 <div class="table-wrap">
   <table>
     <thead><tr><th>Client</th><th>Country</th><th class="num">Deposited</th><th class="num">Balance</th><th>Joined</th><th>Status</th><th></th></tr></thead>

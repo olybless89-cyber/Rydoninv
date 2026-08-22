@@ -5,7 +5,7 @@ import {
   users, transactions, ledger, plans as plansT, traders as tradersT,
   traderTrades, notifications, investments, kycSubmissions, mailLog,
 } from '../db/schema.js';
-import { requireAdmin } from '../lib/auth.js';
+import { requireAdmin, hash } from '../lib/auth.js';
 import { render, eta } from '../lib/view.js';
 import { traderStats, balance, unreadCount, livePrices } from '../lib/stats.js';
 import { getWallets, setWallets } from '../lib/settings.js';
@@ -200,7 +200,7 @@ admin.get('/admin/users', async (c) => {
     from users u
     ${q ? sql`where u.email ilike ${'%' + q + '%'} or u.first_name ilike ${'%' + q + '%'} or u.last_name ilike ${'%' + q + '%'}` : sql``}
     order by u.created_at desc limit 100`;
-  return shell(c, 'admin/users', { rows, q }, 'Users');
+  return shell(c, 'admin/users', { rows, q, ok: c.req.query('ok'), error: c.req.query('e') }, 'Users');
 });
 
 admin.post('/admin/users/:id/status', async (c) => {
@@ -208,17 +208,29 @@ admin.post('/admin/users/:id/status', async (c) => {
   const to = String(c.get('body').status) === 'suspended' ? 'suspended' : 'active';
   if (id === c.get('user').id) return c.redirect('/admin/users');   // don't lock yourself out
   await db.update(users).set({ status: to }).where(eq(users.id, id));
-  return c.redirect('/admin/users');
+  const ref = c.req.header('referer') || '';
+  return c.redirect(ref.includes(`/admin/users/${id}`) ? `/admin/users/${id}?ok=status` : '/admin/users');
 });
 
 /* Manual balance correction. Writes a ledger line like everything else,
-   so it shows up in the client's statement and can be explained. */
+   so it shows up in the client's statement and can be explained.
+   The user edit page sends direction=add|deduct with a positive amount;
+   the quick form on the users list sends a signed amount directly. */
 admin.post('/admin/users/:id/adjust', async (c) => {
   const id = Number(c.req.param('id'));
   const b = c.get('body');
-  const amount = Number(b.amount);
   const memo = String(b.memo || '').trim();
-  if (!amount || !memo) return c.redirect('/admin/users?e=' + encodeURIComponent('An adjustment needs both an amount and a reason.'));
+  const back = (q) => c.redirect(`/admin/users/${id}?${q}`);
+
+  const [target] = await db.select({ id: users.id }).from(users).where(eq(users.id, id)).limit(1);
+  if (!target) return c.notFound();
+
+  let amount = Math.abs(Number(b.amount));
+  if (String(b.direction || '') === 'deduct') amount = -amount;
+  else if (!b.direction) amount = Number(b.amount);   // quick form: signed value
+
+  if (!amount || !Number.isFinite(amount)) return back('e=' + encodeURIComponent('Enter a non-zero amount.'));
+  if (!memo) return back('e=' + encodeURIComponent('An adjustment needs a reason.'));
 
   await db.insert(ledger).values({
     userId: id, account: 'main', kind: 'adjustment', amount: String(amount),
@@ -228,7 +240,7 @@ admin.post('/admin/users/:id/adjust', async (c) => {
     userId: id, kind: 'info', title: 'Balance adjusted',
     body: `${fmt.signedUsd(amount)} — ${memo}`,
   });
-  return c.redirect('/admin/users');
+  return back('ok=adjust');
 });
 
 /* ---------------- traders ---------------- */
@@ -318,7 +330,10 @@ admin.get('/admin/users/:id', async (c) => {
            coalesce((select sum(amount) from ledger where user_id = u.id), 0)::text balance
     from users u where u.id = ${id}`;
   if (!u) return c.notFound();
-  return shell(c, 'admin/user', { u, ok: c.req.query('ok'), error: c.req.query('e') }, 'Edit user');
+  const recentLedger = await sql`
+    select kind, amount::text, memo, created_at from ledger
+    where user_id = ${id} order by created_at desc limit 10`;
+  return shell(c, 'admin/user', { u, recentLedger, ok: c.req.query('ok'), error: c.req.query('e') }, 'Edit user');
 });
 
 admin.post('/admin/users/:id/edit', async (c) => {
@@ -333,6 +348,7 @@ admin.post('/admin/users/:id/edit', async (c) => {
   const lastName = String(b.lastName || '').trim();
   const role = b.role === 'admin' ? 'admin' : 'user';
   const status = b.status === 'suspended' ? 'suspended' : 'active';
+  const kycStatus = ['unverified', 'pending', 'verified'].includes(b.kycStatus) ? b.kycStatus : u.kycStatus;
 
   if (!firstName || !lastName) return c.redirect(`/admin/users/${id}?e=` + encodeURIComponent('Name is required.'));
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(email)) return c.redirect(`/admin/users/${id}?e=` + encodeURIComponent('Enter a valid email.'));
@@ -351,9 +367,24 @@ admin.post('/admin/users/:id/edit', async (c) => {
     firstName, lastName, email,
     country: String(b.country || '').trim() || null,
     phone: String(b.phone || '').trim() || null,
-    role, status,
+    role, status, kycStatus,
   }).where(eq(users.id, id));
   return c.redirect(`/admin/users/${id}?ok=1`);
+});
+
+/* Let an admin set a new password for a client (e.g. support recovery). */
+admin.post('/admin/users/:id/password', async (c) => {
+  const id = Number(c.req.param('id'));
+  const b = c.get('body');
+  const pw = String(b.password || '');
+  const back = (q) => c.redirect(`/admin/users/${id}?${q}`);
+
+  const [target] = await db.select({ id: users.id }).from(users).where(eq(users.id, id)).limit(1);
+  if (!target) return c.notFound();
+  if (pw.length < 10) return back('e=' + encodeURIComponent('Use a password of at least 10 characters.'));
+
+  await db.update(users).set({ passwordHash: await hash(pw) }).where(eq(users.id, id));
+  return back('ok=password');
 });
 
 /* ---------------- wallet addresses ---------------- */

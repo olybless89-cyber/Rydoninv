@@ -40,5 +40,41 @@ document.body.addEventListener('click', (e) => {
   const el = e.target.closest('[data-confirm]');
   if (el && !confirm(el.dataset.confirm)) { e.preventDefault(); e.stopPropagation(); }
 }, true);
+
+// Copy-to-clipboard buttons: <button data-copy="#selector">
+document.body.addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-copy]');
+  if (!btn) return;
+  const target = document.querySelector(btn.dataset.copy);
+  if (!target) return;
+  const text = target.textContent.trim();
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); ta.remove();
+  }
+  const label = btn.textContent;
+  btn.textContent = 'Copied';
+  setTimeout(() => { btn.textContent = label; }, 1200);
+});
+
+// Deposit: reveal the wallet address for the selected payment method
+const methodSel = document.querySelector('select[data-wallets]');
+if (methodSel) {
+  const box = document.getElementById('wallet-box');
+  const addr = document.getElementById('wallet-addr');
+  let wallets = {};
+  try { wallets = JSON.parse(methodSel.dataset.wallets || '{}'); } catch { /* keep empty */ }
+  const showWallet = () => {
+    const v = (wallets[methodSel.value] || '').trim();
+    if (!box || !addr) return;
+    addr.textContent = v || 'Not configured yet — please contact support before sending funds.';
+    box.style.display = '';
+  };
+  methodSel.addEventListener('change', showWallet);
+  showWallet();
+}
 // deploy trigger 2026-08-12T09:25:23Z
 // trigger Wed Aug 12 09:30:19 UTC 2026

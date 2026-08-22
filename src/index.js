@@ -37,6 +37,7 @@ app.use('*', secureHeaders({
 app.use('/css/*', serveStatic({ root: './public' }));
 app.use('/js/*',  serveStatic({ root: './public' }));
 app.use('/img/*', serveStatic({ root: './public' }));
+app.use('/uploads/*', serveStatic({ root: './public' }));
 
 // Infra routes mounted before the global auth/CSRF middleware so they
 // work without a session: healthcheck (liveness), DB readiness, and the

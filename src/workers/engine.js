@@ -1,5 +1,5 @@
 import { sql } from '../db/client.js';
-import { mailPlanClosed } from '../lib/mail.js';
+import { mailPlanClosed, mailPlanPayout } from '../lib/mail.js';
 
 /* =================================================================
    Three loops, all writing rows. Nothing here touches the UI —
@@ -170,7 +170,7 @@ export async function runMarket() {
 /* ---------- 3. investment accrual ---------- */
 export async function runAccrual() {
   const due = await sql`
-    select i.id, i.user_id, i.principal::text, i.periods_paid, p.roi_percent::text roi,
+    select i.id, i.user_id, i.principal::text, i.accrued::text, i.periods_paid, p.roi_percent::text roi,
            p.period_hours, p.duration_periods, p.name, p.principal_returned
     from investments i join plans p on p.id = i.plan_id
     where i.status = 'active'
@@ -179,6 +179,8 @@ export async function runAccrual() {
 
   for (const i of due) {
     const payout = (Number(i.principal) * Number(i.roi)) / 100;
+    const totalAccrued = Number(i.accrued) + payout;
+    const finalPeriod = i.periods_paid + 1 >= i.duration_periods;
 
     await sql`update investments
       set accrued = accrued + ${payout}, periods_paid = periods_paid + 1, last_accrual_at = now()
@@ -188,8 +190,12 @@ export async function runAccrual() {
       values (${i.user_id}, 'profit', 'investment_payout', ${payout}, 'investment', ${i.id},
               ${`${i.name} return, period ${i.periods_paid + 1}/${i.duration_periods}`})`;
 
+    // Returns paid — fire-and-forget mail; never block the accrual loop.
+    const [owner] = await sql`select email, first_name from users where id = ${i.user_id}`;
+    const ownerUser = owner && { id: i.user_id, email: owner.email, firstName: owner.first_name };
+
     // Final period: release the principal and close the plan.
-    if (i.periods_paid + 1 >= i.duration_periods) {
+    if (finalPeriod) {
       await sql`update investments set status = 'matured' where id = ${i.id}`;
       if (i.principal_returned) {
         await sql`insert into ledger (user_id, account, kind, amount, ref_type, ref_id, memo) values
@@ -200,14 +206,13 @@ export async function runAccrual() {
         values (${i.user_id}, 'success', 'Plan matured',
                 ${`Your ${i.name} plan has completed. Principal and returns are back in your balance.`})`;
 
-      // Plan closing mail — fire-and-forget; never block the accrual loop.
-      const [owner] = await sql`select email, first_name from users where id = ${i.user_id}`;
-      if (owner) {
-        mailPlanClosed(
-          { id: i.user_id, email: owner.email, firstName: owner.first_name },
-          i.name, i.principal, i.accrued + payout,
-        ).catch((e) => console.error('[mail] plan closed failed:', e.message));
+      if (ownerUser) {
+        mailPlanClosed(ownerUser, i.name, i.principal, totalAccrued)
+          .catch((e) => console.error('[mail] plan closed failed:', e.message));
       }
+    } else if (ownerUser) {
+      mailPlanPayout(ownerUser, i.name, payout, i.periods_paid + 1, i.duration_periods)
+        .catch((e) => console.error('[mail] plan payout failed:', e.message));
     }
   }
   return due.length;

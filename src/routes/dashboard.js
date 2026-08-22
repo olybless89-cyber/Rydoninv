@@ -7,6 +7,7 @@ import {
   users, kycSubmissions, spotPositions,
 } from '../db/schema.js';
 import { requireUser, hash, verify } from '../lib/auth.js';
+import { saveImage } from '../lib/uploads.js';
 import { render, eta } from '../lib/view.js';
 import { portfolio, balance, traderStats, myCopyPositions, unreadCount, livePrices } from '../lib/stats.js';
 import { mailPlanActivated } from '../lib/mail.js';
@@ -296,14 +297,20 @@ dash.post('/dashboard/kyc', async (c) => {
     .where(and(eq(kycSubmissions.userId, u.id), eq(kycSubmissions.status, 'pending'))).limit(1);
   if (pending) return back('A submission is already under review. We\'ll notify you when it\'s done.');
 
+  let frontUrl, backUrl, selfieUrl;
+  try {
+    [frontUrl, backUrl, selfieUrl] = await Promise.all([
+      saveImage(b.front, 'kyc'), saveImage(b.back, 'kyc'), saveImage(b.selfie, 'kyc'),
+    ]);
+  } catch (e) { return back(e.message); }
+  if (!frontUrl) return back('Upload a photo of the front of your document.');
+
   await db.insert(kycSubmissions).values({
     userId: u.id,
     documentType,
     documentNumber: String(b.documentNumber || '').trim() || null,
     country: String(b.country || u.country || '').trim() || null,
-    frontUrl: String(b.frontUrl || '').trim() || null,
-    backUrl: String(b.backUrl || '').trim() || null,
-    selfieUrl: String(b.selfieUrl || '').trim() || null,
+    frontUrl, backUrl, selfieUrl,
   });
   await db.update(users).set({ kycStatus: 'pending' }).where(eq(users.id, u.id));
   await db.insert(notifications).values({
