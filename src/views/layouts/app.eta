@@ -96,5 +96,6 @@
   </div>
 </div>
 <script src="/js/app.js?v=3" defer></script>
+<%~ include('../partials/smartsupp') %>
 </body>
 </html>

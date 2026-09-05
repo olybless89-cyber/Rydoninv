@@ -26,5 +26,6 @@
     <%~ it.body %>
   </div>
 </div>
+<%~ include('../partials/smartsupp') %>
 </body>
 </html>
