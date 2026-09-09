@@ -762,3 +762,13 @@ table tbody tr:hover td{background:linear-gradient(90deg,rgba(47,107,255,.06),rg
   box-shadow:0 8px 32px -12px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.03)}
 .adm-rank{font-family:var(--f-mono);font-weight:700;color:var(--ink-3);font-size:var(--t-sm);
   width:24px;text-align:center}
+
+/* Admin inline transaction editor (collapsible per-row details)) */
+.tx-edit{position:relative;display:inline-block;vertical-align:top;margin-left:6px}
+.tx-edit summary{list-style:none;cursor:pointer;display:inline-block}
+.tx-edit summary::-webkit-details-marker{display:none}
+.tx-edit-form{position:absolute;right:0;top:30px;z-index:40;min-width:270px;padding:14px;
+  background:var(--card-bg,var(--bg-base));border:1px solid var(--line-soft);border-radius:var(--r-md);
+  box-shadow:0 16px 40px -12px rgba(0,0,0,.6)}
+.tx-edit-form .field{margin-bottom:10px}
+.tx-edit-form .field:last-of-type{margin-bottom:12px}

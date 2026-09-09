@@ -89,6 +89,22 @@
   </div>
 </div>
 
+<div class="card" style="max-width:1000px;margin-top:20px;border-color:var(--danger,#d64541)">
+  <div class="card-head"><h3 style="color:var(--danger,#d64541)">Danger zone</h3></div>
+  <div class="row2" style="align-items:center;justify-content:space-between">
+    <div>
+      <b>Delete <%= it.u.first_name %> <%= it.u.last_name %></b>
+      <p class="small muted" style="margin:4px 0 0">
+        Permanently removes the account and everything attached to it (ledger, plans, trades, KYC, sessions, mail). This cannot be undone.
+      </p>
+    </div>
+    <form method="post" action="/admin/users/<%= it.u.id %>/delete">
+      <input type="hidden" name="_csrf" value="<%= it.csrf %>">
+      <button class="btn btn-danger btn-sm" data-confirm="Permanently delete <%= it.u.first_name %>'s account and all of their data? This cannot be undone.">Delete user</button>
+    </form>
+  </div>
+</div>
+
 <div class="card" style="max-width:1000px;margin-top:20px">
   <div class="card-head"><h3>Recent ledger activity</h3></div>
   <div class="table-wrap" style="border:0">

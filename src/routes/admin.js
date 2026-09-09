@@ -112,6 +112,13 @@ admin.get('/admin', async (c) => {
 });
 
 /* ---------------- transaction review ---------------- */
+const p2 = (n) => (n < 10 ? "0" : "") + n;
+const dtSplit = (d) => {
+  const x = d ? new Date(d) : null;
+  if (!x || Number.isNaN(x.getTime())) return { dateInput:'', timeInput:'' };
+  return { dateInput: `${x.getFullYear()}-${p2(x.getMonth() + 1)}-${p2(x.getDate())}`, timeInput: `${p2(x.getHours())}:${p2(x.getMinutes())}` };
+};
+
 const listTx = (type) => async (c) => {
   const status = c.req.query('status') || 'pending';
   const rows = await sql`
@@ -119,11 +126,37 @@ const listTx = (type) => async (c) => {
     from transactions t join users u on u.id = t.user_id
     where t.type = ${type} ${status === 'all' ? sql`` : sql`and t.status = ${status}`}
     order by t.created_at desc limit 100`;
-  return shell(c, 'admin/transactions', { rows, type, status }, type === 'deposit' ? 'Deposits' : 'Withdrawals');
+  return shell(c, 'admin/transactions', {
+    rows: rows.map((t) => ({ ...t, ...dtSplit(t.created_at) })),
+    type, status,
+    ok: c.req.query('ok'), error: c.req.query('e'),
+  }, type === 'deposit' ? 'Deposits' : 'Withdrawals');
 };
 admin.get('/admin/deposits', listTx('deposit'));
 admin.get('/admin/withdrawals', listTx('withdrawal'));
 
+/* Admins can correct a transaction's timestamp and note (the ledger line was
+   already written at approve time, so editing here only reshapes the review
+   record — date/time reorder it, description becomes the admin note). */
+admin.post('/admin/transactions/:id/edit', async (c) => {
+  const id = Number(c.req.param('id'));
+  const b = c.get('body');
+  const [t] = await db.select().from(transactions).where(eq(transactions.id, id)).limit(1);
+  if (!t) return c.notFound();
+
+  const date = String(b.date || '').trim();
+  const time = String(b.time || '').trim();
+  const desc = String(b.description || '').trim();
+  const when = date && time ? new Date(`${date}T${time}:00`) : null;
+  if (!date || !time || !when || Number.isNaN(when.getTime()))
+    return c.redirect(`/admin/${t.type}s?e=` + encodeURIComponent('Enter a valid date and time.'));
+
+  await db.update(transactions).set({
+    createdAt: when,
+    adminNote: desc || t.adminNote,
+  }).where(eq(transactions.id, id));
+  return c.redirect(`/admin/${t.type}s?ok=edit`);
+});
 admin.post('/admin/transactions/:id/:action', async (c) => {
   const id = Number(c.req.param('id'));
   const action = c.req.param('action');           // approve | reject
@@ -187,6 +220,8 @@ admin.post('/admin/transactions/:id/:action', async (c) => {
 
   return c.redirect(`/admin/${t.type}s`);
 });
+
+
 
 /* ---------------- users ---------------- */
 admin.get('/admin/users', async (c) => {
@@ -385,6 +420,40 @@ admin.post('/admin/users/:id/password', async (c) => {
 
   await db.update(users).set({ passwordHash: await hash(pw) }).where(eq(users.id, id));
   return back('ok=password');
+});
+
+/* Permanently delete a client. Cleansa every row touching that user in a
+   single transaction (there are no FK constraints in this schema, so we
+   do it explicitly), and lets admin edit/remove users as needed. */
+admin.post('/admin/users/:id/delete', async (c) => {
+  const id = Number(c.req.param('id'));
+  const me = c.get('user');
+
+  const [target] = await db.select().from(users).where(eq(users.id, id)).limit(1);
+  if (!target) return c.notFound();
+  if (id === me.id)
+    return c.redirect('/admin/users?e=' + encodeURIComponent("You can't delete your own account."));
+  if (target.role === 'admin') {
+    const [{ n }] = await sql`select count(*)::int n from users where role = 'admin'`;
+    if (n <= 1) return c.redirect(`/admin/users/${id}?e=` + encodeURIComponent("Can't delete the last admin."));
+  }
+
+  await sql.begin(async (q) => {
+    await q`delete from sessions where user_id = ${id}`;
+    await q`delete from notifications where user_id = ${id}`;
+    await q`delete from ledger where user_id = ${id}`;
+    await q`delete from transactions where user_id = ${id}`;
+    await q`delete from investments where user_id = ${id}`;
+    await q`delete from spot_positions where user_id = ${id}`;
+    await q`delete from copy_follows where user_id = ${id}`;
+    await q`delete from copy_positions where user_id = ${id}`;
+    await q`delete from bot_runs where user_id = ${id}`;
+    await q`delete from kyc_submissions where user_id = ${id}`;
+    await q`delete from mail_log where user_id = ${id}`;
+    await q`update users set referred_by = null where referred_by = ${id}`;
+    await q`delete from users where id = ${id}`;
+  });
+  return c.redirect('/admin/users?ok=deleted');
 });
 
 /* ---------------- wallet addresses ---------------- */

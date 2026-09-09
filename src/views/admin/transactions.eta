@@ -7,6 +7,9 @@
     </p></div>
 </div>
 
+<% if (it.ok === 'edit') { %><div class="notice notice-ok">Transaction date, time and note updated.</div><% } %>
+<% if (it.error) { %><div class="notice notice-err"><%= it.error %></div><% } %>
+
 <div class="tabs">
   <% ['pending','approved','rejected','all'].forEach(function(s){ %>
     <a href="/admin/<%= it.type %>s?status=<%= s %>" <%= it.status===s?'aria-current=page':'' %>><%= s.replace(/^./,x=>x.toUpperCase()) %></a>
@@ -42,6 +45,18 @@
             <% } else { %>
               <span class="small muted"><%= t.admin_note || '—' %></span>
             <% } %>
+            <details class="tx-edit">
+              <summary class="btn btn-quiet btn-sm">Edit</summary>
+              <form method="post" action="/admin/transactions/<%= t.id %>/edit" class="tx-edit-form">
+                <input type="hidden" name="_csrf" value="<%= it.csrf %>">
+                <div class="row2">
+                  <div class="field"><label>Date</label><input class="input" type="date" name="date" value="<%= t.dateInput %>" required></div>
+                  <div class="field"><label>Time</label><input class="input" type="time" name="time" value="<%= t.timeInput %>" required></div>
+                </div>
+                <div class="field"><label>Description</label><input class="input" name="description" value="<%= t.admin_note || '' %>" placeholder="Public note on this transaction"></div>
+                <button class="btn btn-quiet btn-block btn-sm">Save transaction</button>
+              </form>
+            </details>
           </td>
         </tr>
       <% }) %>

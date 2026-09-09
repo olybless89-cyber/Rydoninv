@@ -5,7 +5,7 @@
   </form>
 </div>
 
-<% if (it.ok) { %><div class="notice notice-ok">Done.</div><% } %>
+<% if (it.ok === 'deleted') { %><div class="notice notice-ok">User deleted. All associated data was removed.</div><% } else if (it.ok) { %><div class="notice notice-ok">Done.</div><% } %>
 <% if (it.error) { %><div class="notice notice-err"><%= it.error %></div><% } %>
 
 <div class="table-wrap">
@@ -31,6 +31,11 @@
                       data-confirm="<%= u.status==='active'?'Suspend':'Reactivate' %> <%= u.first_name %>?">
                 <%= u.status==='active'?'Suspend':'Reactivate' %>
               </button>
+            </form>
+            <form method="post" action="/admin/users/<%= u.id %>/delete" style="display:inline">
+              <input type="hidden" name="_csrf" value="<%= it.csrf %>">
+              <button class="btn btn-danger btn-sm"
+                      data-confirm="Permanently delete <%= u.first_name %> and all of their data? This cannot be undone.">Delete</button>
             </form>
           </td>
         </tr>

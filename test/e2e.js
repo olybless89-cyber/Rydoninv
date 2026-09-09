@@ -133,6 +133,38 @@ await post(jar, '/admin/wallets', { usdt_trc20: 'TQn9TestAddress123', btc: '', e
 page = await get(ujar, '/dashboard/deposit');
 check('deposit page embeds configured wallet JSON', page.text.includes('TQn9TestAddress123'));
 
+/* 7b. admin can edit a deposit's date, time and description */
+const { id: txId } = await one(`select id from transactions where type='deposit' and user_id=${demoId} order by id desc limit 1`);
+page = await get(jar, `/admin/deposits?status=all`);
+const editRow = page.text.includes(`/admin/transactions/${txId}/edit`);
+check('admin tx list ships an edit form for the deposit', editRow);
+res = await post(jar, `/admin/transactions/${txId}/edit`, {
+  date: '2024-01-02', time: '03:04', description: 'edited by smoke test',
+}, page.text);
+check('tx edit route redirects (302)', res.status === 302);
+const { d: editedAt, n: editedNote } = await one(`select to_char(created_at,'YYYY-MM-DD HH24:MI') d, admin_note n
+  from transactions where id=${txId}`);
+check('tx date/time applied', editedAt === '2024-01-02 03:04');
+check('tx description stored as admin note', editedNote === 'edited by smoke test');
+
+/* 7c. admin can delete a user + all of their rows collapse */
+const delId = (await one(`insert into users (email, password_hash, first_name, last_name)
+  values ('todelete-${Date.now()}@example.com', 'x', 'Delete', 'Me') returning id`)).id;
+await sql.unsafe(`insert into ledger (user_id, kind, amount) values (${delId}, 'adjustment', '10')`);
+await sql.unsafe(`insert into transactions (user_id, type, method, amount, status) values (${delId}, 'deposit', 'btc', '10', 'pending')`);
+await sql.unsafe(`insert into notifications (user_id, title) values (${delId}, 'hi')`);
+page = await get(jar, `/admin/users?q=${encodeURIComponent('todelete')}`);
+res = await post(jar, `/admin/users/${delId}/delete`, {}, page.text);
+check('user delete route redirects (302)', res.status === 302);
+const { c: usersLeft } = await one(`select count(*)::int c from users where id=${delId}`);
+const { c: ledgerLeft } = await one(`select count(*)::int c from ledger where user_id=${delId}`);
+const { c: txLeft } = await one(`select count(*)::int c from transactions where user_id=${delId}`);
+const { c: nLeft } = await one(`select count(*)::int c from notifications where user_id=${delId}`);
+check('deleted user is gone', usersLeft === 0);
+check('their ledger lines were cleaned', ledgerLeft === 0);
+check('their transactions were cleaned', txLeft === 0);
+check('their notifications were cleaned', nLeft === 0);
+
 /* 8. accrual pays + closes plans with correct accrued total */
 const { runAccrual } = await import('../src/workers/engine.js');
 const { pid: planId } = await one(`select id pid from plans order by id limit 1`);
