@@ -249,11 +249,6 @@
         </div>
       <% }) %>
     </div>
-
-    <p class="risk center" style="margin:26px auto 0">
-      Advertised rates are targets, not guarantees. Capital placed in a plan is at risk and
-      returns may be lower than shown, including a total loss of principal.
-    </p>
   </div>
 </section>
 
